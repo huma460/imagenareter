@@ -1,59 +1,54 @@
 
-from flask import Flask, request, jsonify, render_template_string
-from deep_translator import GoogleTranslator
-from langdetect import detect
+from flask import Flask, request, jsonify
+from groq import Groq
+import os
 
 app = Flask(__name__)
 
-# Supported languages (name -> code)
+# Initialize Groq client
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
+# Supported languages
 LANGUAGES = {
     "Afrikaans": "af", "Albanian": "sq", "Amharic": "am", "Arabic": "ar",
-    "Armenian": "hy", "Azerbaijani": "az", "Basque": "eu", "Belarusian": "be",
-    "Bengali": "bn", "Bosnian": "bs", "Bulgarian": "bg", "Catalan": "ca",
-    "Cebuano": "ceb", "Chinese (Simplified)": "zh-CN", "Chinese (Traditional)": "zh-TW",
-    "Corsican": "co", "Croatian": "hr", "Czech": "cs", "Danish": "da",
-    "Dutch": "nl", "English": "en", "Esperanto": "eo", "Estonian": "et",
-    "Finnish": "fi", "French": "fr", "Frisian": "fy", "Galician": "gl",
-    "Georgian": "ka", "German": "de", "Greek": "el", "Gujarati": "gu",
-    "Haitian Creole": "ht", "Hausa": "ha", "Hawaiian": "haw", "Hebrew": "iw",
-    "Hindi": "hi", "Hmong": "hmn", "Hungarian": "hu", "Icelandic": "is",
-    "Igbo": "ig", "Indonesian": "id", "Irish": "ga", "Italian": "it",
-    "Japanese": "ja", "Javanese": "jw", "Kannada": "kn", "Kazakh": "kk",
-    "Khmer": "km", "Korean": "ko", "Kurdish": "ku", "Kyrgyz": "ky",
-    "Lao": "lo", "Latin": "la", "Latvian": "lv", "Lithuanian": "lt",
-    "Luxembourgish": "lb", "Macedonian": "mk", "Malagasy": "mg", "Malay": "ms",
-    "Malayalam": "ml", "Maltese": "mt", "Maori": "mi", "Marathi": "mr",
-    "Mongolian": "mn", "Myanmar (Burmese)": "my", "Nepali": "ne", "Norwegian": "no",
-    "Nyanja (Chichewa)": "ny", "Pashto": "ps", "Persian": "fa", "Polish": "pl",
-    "Portuguese": "pt", "Punjabi": "pa", "Romanian": "ro", "Russian": "ru",
-    "Samoan": "sm", "Scots Gaelic": "gd", "Serbian": "sr", "Sesotho": "st",
-    "Shona": "sn", "Sindhi": "sd", "Sinhala": "si", "Slovak": "sk",
-    "Slovenian": "sl", "Somali": "so", "Spanish": "es", "Sundanese": "su",
-    "Swahili": "sw", "Swedish": "sv", "Tagalog (Filipino)": "tl", "Tajik": "tg",
+    "Armenian": "hy", "Azerbaijani": "az", "Bengali": "bn", "Bosnian": "bs",
+    "Bulgarian": "bg", "Catalan": "ca", "Chinese (Simplified)": "zh-CN",
+    "Chinese (Traditional)": "zh-TW", "Croatian": "hr", "Czech": "cs",
+    "Danish": "da", "Dutch": "nl", "English": "en", "Estonian": "et",
+    "Finnish": "fi", "French": "fr", "Galician": "gl", "Georgian": "ka",
+    "German": "de", "Greek": "el", "Gujarati": "gu", "Haitian Creole": "ht",
+    "Hebrew": "he", "Hindi": "hi", "Hungarian": "hu", "Icelandic": "is",
+    "Indonesian": "id", "Irish": "ga", "Italian": "it", "Japanese": "ja",
+    "Kannada": "kn", "Kazakh": "kk", "Korean": "ko", "Latvian": "lv",
+    "Lithuanian": "lt", "Macedonian": "mk", "Malay": "ms", "Malayalam": "ml",
+    "Maltese": "mt", "Marathi": "mr", "Mongolian": "mn", "Nepali": "ne",
+    "Norwegian": "no", "Persian": "fa", "Polish": "pl", "Portuguese": "pt",
+    "Punjabi": "pa", "Romanian": "ro", "Russian": "ru", "Serbian": "sr",
+    "Sinhala": "si", "Slovak": "sk", "Slovenian": "sl", "Somali": "so",
+    "Spanish": "es", "Swahili": "sw", "Swedish": "sv", "Tagalog": "tl",
     "Tamil": "ta", "Telugu": "te", "Thai": "th", "Turkish": "tr",
     "Ukrainian": "uk", "Urdu": "ur", "Uzbek": "uz", "Vietnamese": "vi",
-    "Welsh": "cy", "Xhosa": "xh", "Yiddish": "yi", "Yoruba": "yo", "Zulu": "zu"
+    "Welsh": "cy", "Yoruba": "yo", "Zulu": "zu"
 }
 
 
-@app.route("/")
-def index():
-    """Serve the main translator page."""
-    return render_template_string(open("index.html").read() if __import__("os").path.exists("index.html") else "<h1>Translator API Running</h1><p>Use /translate endpoint.</p>")
+def get_language_name(code):
+    """Get language name from code."""
+    return next((name for name, c in LANGUAGES.items() if c == code), code)
 
 
 @app.route("/translate", methods=["POST"])
 def translate():
     """
-    Translate text from source language to target language.
+    Translate text using Groq LLM.
 
     JSON body:
-        text (str): Text to translate.
-        source (str): Source language code (e.g., 'en'). Use 'auto' for auto-detection.
-        target (str): Target language code (e.g., 'fr').
+        text   (str): Text to translate.
+        source (str): Source language code or 'auto' for auto-detect.
+        target (str): Target language code (e.g., 'ur', 'fr').
 
     Returns:
-        JSON with translated text, detected language (if auto), and status.
+        JSON with translated text and metadata.
     """
     data = request.get_json()
 
@@ -67,27 +62,62 @@ def translate():
     if not text:
         return jsonify({"error": "No text provided."}), 400
 
-    if target not in LANGUAGES.values():
-        return jsonify({"error": f"Unsupported target language: '{target}'."}), 400
-
-    # Auto-detect source language if requested
-    detected_lang = None
+    # Build source language instruction
     if source == "auto":
-        try:
-            detected_lang = detect(text)
-            source = detected_lang
-        except Exception:
-            source = "auto"
+        source_instruction = "Detect the source language automatically."
+    else:
+        source_name = get_language_name(source)
+        source_instruction = f"The source language is {source_name}."
+
+    target_name = get_language_name(target)
+
+    prompt = f"""You are a professional translator.
+{source_instruction}
+Translate the following text into {target_name}.
+
+Rules:
+- Return ONLY the translated text, nothing else.
+- Do not add any explanation, notes, or extra text.
+- Preserve the original formatting, tone, and style.
+- If the text is already in {target_name}, return it as-is.
+
+Text to translate:
+{text}"""
 
     try:
-        translated = GoogleTranslator(source=source, target=target).translate(text)
+        response = client.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert multilingual translator. Always respond with only the translated text — no preamble, no explanation."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.2,
+            max_tokens=2048
+        )
+
+        translated_text = response.choices[0].message.content.strip()
+
         return jsonify({
             "status": "success",
             "original": text,
-            "translated": translated,
-            "source_language": detected_lang or source,
-            "target_language": target
+            "translated": translated_text,
+            "source_language": source,
+            "target_language": target,
+            "target_language_name": target_name,
+            "model": response.model,
+            "usage": {
+                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.completion_tokens,
+                "total_tokens": response.usage.total_tokens
+            }
         })
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -95,13 +125,13 @@ def translate():
 @app.route("/detect", methods=["POST"])
 def detect_language():
     """
-    Detect the language of the given text.
+    Detect the language of the given text using Groq.
 
     JSON body:
         text (str): Text to detect.
 
     Returns:
-        JSON with detected language code and status.
+        JSON with detected language name and code.
     """
     data = request.get_json()
     text = data.get("text", "").strip() if data else ""
@@ -109,29 +139,65 @@ def detect_language():
     if not text:
         return jsonify({"error": "No text provided."}), 400
 
+    prompt = f"""Detect the language of the following text.
+Respond with ONLY a JSON object in this exact format:
+{{"language_name": "English", "language_code": "en"}}
+
+Do not include any other text or explanation.
+
+Text: {text}"""
+
     try:
-        lang_code = detect(text)
-        lang_name = next((k for k, v in LANGUAGES.items() if v == lang_code), lang_code)
+        response = client.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.0,
+            max_tokens=60
+        )
+
+        import json
+        result = json.loads(response.choices[0].message.content.strip())
+
         return jsonify({
             "status": "success",
-            "detected_language_code": lang_code,
-            "detected_language_name": lang_name
+            "detected_language_name": result.get("language_name", "Unknown"),
+            "detected_language_code": result.get("language_code", "??")
         })
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/languages", methods=["GET"])
 def get_languages():
-    """Return all supported languages as a list of {name, code} objects."""
+    """Return all supported languages."""
     langs = [{"name": name, "code": code} for name, code in sorted(LANGUAGES.items())]
     return jsonify({"status": "success", "languages": langs, "count": len(langs)})
 
 
+@app.route("/", methods=["GET"])
+def index():
+    return jsonify({
+        "app": "Lingua Translator API (Groq)",
+        "endpoints": {
+            "POST /translate": "Translate text",
+            "POST /detect": "Detect language",
+            "GET  /languages": "List supported languages"
+        }
+    })
+
+
 if __name__ == "__main__":
-    print("🌐 Lingua Translator API running at http://127.0.0.1:5000")
+    if not os.environ.get("GROQ_API_KEY"):
+        print("⚠️  WARNING: GROQ_API_KEY environment variable not set!")
+        print("   Set it with: export GROQ_API_KEY=your_key_here")
+    else:
+        print("✅ Groq API key loaded.")
+
+    print("\n🌐 Lingua Translator API (Groq) running at http://127.0.0.1:5000")
     print("📌 Endpoints:")
     print("   POST /translate   — Translate text")
     print("   POST /detect      — Detect language")
-    print("   GET  /languages   — List supported languages")
+    print("   GET  /languages   — List supported languages\n")
+
     app.run(debug=True, host="0.0.0.0", port=5000)
