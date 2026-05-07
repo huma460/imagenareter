@@ -1,12 +1,2 @@
-
-# Lingua Translator — Groq API Dependencies
-# Install with: pip install -r requirements.txt
-
-# Web framework
-flask>=3.0.0
-
-# Groq Python SDK
-groq>=0.9.0
-
-# Optional: production WSGI server
-gunicorn>=21.2.0
+sreamlilt
+openai
