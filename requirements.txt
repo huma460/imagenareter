@@ -1,15 +1,12 @@
 
-# Lingua Translator — Python Dependencies
+# Lingua Translator — Groq API Dependencies
 # Install with: pip install -r requirements.txt
 
 # Web framework
 flask>=3.0.0
 
-# Translation engine (uses Google Translate for free)
-deep-translator>=1.11.4
+# Groq Python SDK
+groq>=0.9.0
 
-# Language detection
-langdetect>=1.0.9
-
-# Optional: Production WSGI server (use instead of Flask dev server)
+# Optional: production WSGI server
 gunicorn>=21.2.0
