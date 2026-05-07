@@ -1,3 +1,15 @@
-streamlit>=1.32.0
-requests>=2.31.0
-Pillow>=10.0.0
+
+# Lingua Translator — Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Web framework
+flask>=3.0.0
+
+# Translation engine (uses Google Translate for free)
+deep-translator>=1.11.4
+
+# Language detection
+langdetect>=1.0.9
+
+# Optional: Production WSGI server (use instead of Flask dev server)
+gunicorn>=21.2.0
