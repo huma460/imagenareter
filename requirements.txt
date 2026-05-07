@@ -1,2 +1,2 @@
-sreamlilt
+streamlit
 openai
