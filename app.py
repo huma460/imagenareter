@@ -1,6 +1,5 @@
-
 import streamlit as st
-from openai import OpenAI
+from xai_sdk import Client
 
 st.set_page_config(
     page_title="English to Urdu Translator",
@@ -50,11 +49,7 @@ if st.button("Translate to Urdu 🔄"):
     else:
         with st.spinner("Translating..."):
             try:
-                import os
-                client = OpenAI(
-                    api_key=os.environ.get("GROK_API_KEY"),
-                    base_url="https://api.x.ai/v1"
-                )
+                client = Client(api_key=st.secrets["GROK_API_KEY"])
 
                 response = client.chat.completions.create(
                     model="grok-3",
