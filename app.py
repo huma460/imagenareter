@@ -1,203 +1,83 @@
 
-from flask import Flask, request, jsonify
-from groq import Groq
-import os
+import streamlit as st
+from openai import OpenAI
 
-app = Flask(__name__)
+st.set_page_config(
+    page_title="English to Urdu Translator",
+    page_icon="🌐",
+    layout="centered"
+)
 
-# Initialize Groq client
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+st.markdown("""
+<style>
+    .stTextArea textarea {
+        font-size: 16px;
+    }
+    .stButton button {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        width: 100%;
+    }
+    .result-box {
+        background-color: #1a1a2e;
+        border: 1px solid #4a4a8a;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+        font-size: 18px;
+        color: #e0e0ff;
+        line-height: 2;
+        direction: rtl;
+        text-align: right;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# Supported languages
-LANGUAGES = {
-    "Afrikaans": "af", "Albanian": "sq", "Amharic": "am", "Arabic": "ar",
-    "Armenian": "hy", "Azerbaijani": "az", "Bengali": "bn", "Bosnian": "bs",
-    "Bulgarian": "bg", "Catalan": "ca", "Chinese (Simplified)": "zh-CN",
-    "Chinese (Traditional)": "zh-TW", "Croatian": "hr", "Czech": "cs",
-    "Danish": "da", "Dutch": "nl", "English": "en", "Estonian": "et",
-    "Finnish": "fi", "French": "fr", "Galician": "gl", "Georgian": "ka",
-    "German": "de", "Greek": "el", "Gujarati": "gu", "Haitian Creole": "ht",
-    "Hebrew": "he", "Hindi": "hi", "Hungarian": "hu", "Icelandic": "is",
-    "Indonesian": "id", "Irish": "ga", "Italian": "it", "Japanese": "ja",
-    "Kannada": "kn", "Kazakh": "kk", "Korean": "ko", "Latvian": "lv",
-    "Lithuanian": "lt", "Macedonian": "mk", "Malay": "ms", "Malayalam": "ml",
-    "Maltese": "mt", "Marathi": "mr", "Mongolian": "mn", "Nepali": "ne",
-    "Norwegian": "no", "Persian": "fa", "Polish": "pl", "Portuguese": "pt",
-    "Punjabi": "pa", "Romanian": "ro", "Russian": "ru", "Serbian": "sr",
-    "Sinhala": "si", "Slovak": "sk", "Slovenian": "sl", "Somali": "so",
-    "Spanish": "es", "Swahili": "sw", "Swedish": "sv", "Tagalog": "tl",
-    "Tamil": "ta", "Telugu": "te", "Thai": "th", "Turkish": "tr",
-    "Ukrainian": "uk", "Urdu": "ur", "Uzbek": "uz", "Vietnamese": "vi",
-    "Welsh": "cy", "Yoruba": "yo", "Zulu": "zu"
-}
+st.title("🌐 English → اردو Translator")
+st.markdown("<p style='text-align:center; color:#888;'>Powered by Grok AI</p>", unsafe_allow_html=True)
 
+english_text = st.text_area(
+    "Enter English text:",
+    placeholder="Type or paste your English text here...",
+    height=150
+)
 
-def get_language_name(code):
-    """Get language name from code."""
-    return next((name for name, c in LANGUAGES.items() if c == code), code)
-
-
-@app.route("/translate", methods=["POST"])
-def translate():
-    """
-    Translate text using Groq LLM.
-
-    JSON body:
-        text   (str): Text to translate.
-        source (str): Source language code or 'auto' for auto-detect.
-        target (str): Target language code (e.g., 'ur', 'fr').
-
-    Returns:
-        JSON with translated text and metadata.
-    """
-    data = request.get_json()
-
-    if not data:
-        return jsonify({"error": "No JSON body provided."}), 400
-
-    text = data.get("text", "").strip()
-    source = data.get("source", "auto")
-    target = data.get("target", "en")
-
-    if not text:
-        return jsonify({"error": "No text provided."}), 400
-
-    # Build source language instruction
-    if source == "auto":
-        source_instruction = "Detect the source language automatically."
+if st.button("Translate to Urdu 🔄"):
+    if english_text.strip() == "":
+        st.warning("Please enter some text first!")
     else:
-        source_name = get_language_name(source)
-        source_instruction = f"The source language is {source_name}."
+        with st.spinner("Translating..."):
+            try:
+                import os
+                client = OpenAI(
+                    api_key=os.environ.get("GROK_API_KEY"),
+                    base_url="https://api.x.ai/v1"
+                )
 
-    target_name = get_language_name(target)
+                response = client.chat.completions.create(
+                    model="grok-3",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are a translator. Translate English to Urdu. Return ONLY the Urdu translation, nothing else."
+                        },
+                        {
+                            "role": "user",
+                            "content": english_text
+                        }
+                    ]
+                )
 
-    prompt = f"""You are a professional translator.
-{source_instruction}
-Translate the following text into {target_name}.
+                urdu_translation = response.choices[0].message.content
 
-Rules:
-- Return ONLY the translated text, nothing else.
-- Do not add any explanation, notes, or extra text.
-- Preserve the original formatting, tone, and style.
-- If the text is already in {target_name}, return it as-is.
+                st.markdown("### Urdu Translation:")
+                st.markdown(f'<div class="result-box">{urdu_translation}</div>', unsafe_allow_html=True)
+                st.text_area("Copy translation:", value=urdu_translation, height=100)
 
-Text to translate:
-{text}"""
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
 
-    try:
-        response = client.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an expert multilingual translator. Always respond with only the translated text — no preamble, no explanation."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            temperature=0.2,
-            max_tokens=2048
-        )
-
-        translated_text = response.choices[0].message.content.strip()
-
-        return jsonify({
-            "status": "success",
-            "original": text,
-            "translated": translated_text,
-            "source_language": source,
-            "target_language": target,
-            "target_language_name": target_name,
-            "model": response.model,
-            "usage": {
-                "prompt_tokens": response.usage.prompt_tokens,
-                "completion_tokens": response.usage.completion_tokens,
-                "total_tokens": response.usage.total_tokens
-            }
-        })
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/detect", methods=["POST"])
-def detect_language():
-    """
-    Detect the language of the given text using Groq.
-
-    JSON body:
-        text (str): Text to detect.
-
-    Returns:
-        JSON with detected language name and code.
-    """
-    data = request.get_json()
-    text = data.get("text", "").strip() if data else ""
-
-    if not text:
-        return jsonify({"error": "No text provided."}), 400
-
-    prompt = f"""Detect the language of the following text.
-Respond with ONLY a JSON object in this exact format:
-{{"language_name": "English", "language_code": "en"}}
-
-Do not include any other text or explanation.
-
-Text: {text}"""
-
-    try:
-        response = client.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.0,
-            max_tokens=60
-        )
-
-        import json
-        result = json.loads(response.choices[0].message.content.strip())
-
-        return jsonify({
-            "status": "success",
-            "detected_language_name": result.get("language_name", "Unknown"),
-            "detected_language_code": result.get("language_code", "??")
-        })
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/languages", methods=["GET"])
-def get_languages():
-    """Return all supported languages."""
-    langs = [{"name": name, "code": code} for name, code in sorted(LANGUAGES.items())]
-    return jsonify({"status": "success", "languages": langs, "count": len(langs)})
-
-
-@app.route("/", methods=["GET"])
-def index():
-    return jsonify({
-        "app": "Lingua Translator API (Groq)",
-        "endpoints": {
-            "POST /translate": "Translate text",
-            "POST /detect": "Detect language",
-            "GET  /languages": "List supported languages"
-        }
-    })
-
-
-if __name__ == "__main__":
-    if not os.environ.get("GROQ_API_KEY"):
-        print("⚠️  WARNING: GROQ_API_KEY environment variable not set!")
-        print("   Set it with: export GROQ_API_KEY=your_key_here")
-    else:
-        print("✅ Groq API key loaded.")
-
-    print("\n🌐 Lingua Translator API (Groq) running at http://127.0.0.1:5000")
-    print("📌 Endpoints:")
-    print("   POST /translate   — Translate text")
-    print("   POST /detect      — Detect language")
-    print("   GET  /languages   — List supported languages\n")
-
-    app.run(debug=True, host="0.0.0.0", port=5000)
+st.markdown("---")
+st.markdown("<p style='text-align:center; color:#555; font-size:12px;'>Made with ❤️ using Grok AI</p>", unsafe_allow_html=True)
