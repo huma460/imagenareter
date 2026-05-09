@@ -1,0 +1,149 @@
+# 🌐 Translator App
+
+A simple and powerful language translation application that lets you translate text between multiple languages instantly.
+
+---
+
+## 📱 Features
+
+- 🔤 Translate text between multiple languages
+- ⚡ Fast and real-time translation
+- 🌍 Supports a wide range of languages
+- 🔄 Swap source and target languages with one click
+- 📋 Copy translated text to clipboard
+- 📱 Responsive design — works on mobile and desktop
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+Make sure you have the following installed:
+
+- [Node.js](https://nodejs.org/) (v14 or higher)
+- npm or yarn
+
+### Installation
+
+1. **Clone the repository:**
+
+```bash
+git clone https://github.com/your-username/translator-app.git
+cd translator-app
+```
+
+2. **Install dependencies:**
+
+```bash
+npm install
+```
+
+3. **Set up environment variables:**
+
+Create a `.env` file in the root directory and add your API key:
+
+```env
+VITE_TRANSLATE_API_KEY=your_api_key_here
+```
+
+4. **Run the app:**
+
+```bash
+npm run dev
+```
+
+The app will be running at `http://localhost:3000`
+
+---
+
+## 🛠️ Built With
+
+- **Frontend:** HTML / CSS / JavaScript (or React / Vue — update as needed)
+- **Translation API:** Google Translate API / LibreTranslate / DeepL (update as needed)
+- **Styling:** CSS / Tailwind CSS (update as needed)
+
+---
+
+## 📂 Project Structure
+
+```
+translator-app/
+├── public/
+│   └── index.html
+├── src/
+│   ├── components/
+│   ├── App.js
+│   └── index.js
+├── .env
+├── package.json
+└── README.md
+```
+
+---
+
+## 🌐 Supported Languages
+
+The app supports many languages including but not limited to:
+
+| Language   | Code |
+|------------|------|
+| English    | en   |
+| Arabic     | ar   |
+| Urdu       | ur   |
+| French     | fr   |
+| Spanish    | es   |
+| German     | de   |
+| Chinese    | zh   |
+| Hindi      | hi   |
+| Japanese   | ja   |
+| Portuguese | pt   |
+
+---
+
+## 📸 Screenshots
+
+> *(Add screenshots of your app here)*
+
+```
+![Home Screen](screenshots/home.png)
+![Translation Example](screenshots/translate.png)
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Here's how:
+
+1. Fork the project
+2. Create your feature branch: `git checkout -b feature/AmazingFeature`
+3. Commit your changes: `git commit -m 'Add some AmazingFeature'`
+4. Push to the branch: `git push origin feature/AmazingFeature`
+5. Open a Pull Request
+
+---
+
+## 🐛 Reporting Issues
+
+Found a bug? Please [open an issue](https://github.com/your-username/translator-app/issues) and describe:
+- What happened
+- What you expected to happen
+- Steps to reproduce
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👤 Author
+
+**Your Name**
+- GitHub: [@your-username](https://github.com/your-username)
+
+---
+
+> ⭐ If you find this project useful, please give it a star on GitHub!
