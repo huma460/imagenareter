@@ -1,28 +1,37 @@
 import streamlit as st
-from openai import OpenAI
+from googletrans import Translator
 
-# API Key
-client = OpenAI(
-    api_key=st.secrets["GROK_API_KEY"],
-    base_url="https://api.x.ai/v1"
-)
+st.set_page_config(page_title="English → اردو Translator", page_icon="🌐")
 
 st.title("🌐 English → اردو Translator")
+st.write("Free Google Translate - کوئی API Key نہیں چاہیے")
 
-text = st.text_area("Enter English text:")
+# Translator object بناؤ
+translator = Translator()
 
-if st.button("Translate to Urdu"):
+# User سے input لو
+text = st.text_area("Enter English text:", height=150, placeholder="Type something like: How are you?")
 
-    response = client.chat.completions.create(
-        model="grok-beta",
-        messages=[
-            {
-                "role": "user",
-                "content": f"Translate this into Urdu: {text}"
-            }
-        ]
-    )
+# Button
+if st.button("Translate to Urdu", type="primary"):
+    if text.strip() == "":
+        st.warning("پہلے کچھ English لکھو 👆")
+    else:
+        try:
+            with st.spinner("Translate ہو رہا ہے..."):
+                # Translate کرو
+                result = translator.translate(text, dest='ur')
+            
+            st.success("ترجمہ ہو گیا ✅")
+            st.text_area("Urdu Translation:", value=result.text, height=150)
+            
+            # Pronunciation بھی دکھا دو
+            if result.pronunciation:
+                st.caption(f"**Pronunciation:** {result.pronunciation}")
+                
+        except Exception as e:
+            st.error(f"Error آ گیا: {e}")
+            st.info("Net slow ہے تو 1 منٹ بعد Try کرو")
 
-    translation = response.choices[0].message.content
-
-    st.success(translation)
+st.markdown("---")
+st.caption("Made with ❤️ using Google Translate Free")
