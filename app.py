@@ -1,16 +1,13 @@
 import streamlit as st
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 
 st.set_page_config(page_title="English → اردو Translator", page_icon="🌐")
 
 st.title("🌐 English → اردو Translator")
-st.write("Free Google Translate - کوئی API Key نہیں چاہیے")
+st.write("100% Free - کوئی API Key نہیں چاہیے")
 
-# Translator object بناؤ
-translator = Translator()
-
-# User سے input لو
-text = st.text_area("Enter English text:", height=150, placeholder="Type something like: How are you?")
+# Input
+text = st.text_area("Enter English text:", height=150, placeholder="Type: I love Pakistan")
 
 # Button
 if st.button("Translate to Urdu", type="primary"):
@@ -19,19 +16,15 @@ if st.button("Translate to Urdu", type="primary"):
     else:
         try:
             with st.spinner("Translate ہو رہا ہے..."):
-                # Translate کرو
-                result = translator.translate(text, dest='ur')
+                # Translate کرو - یہ نیا طریقہ ہے
+                translated = GoogleTranslator(source='en', target='ur').translate(text)
             
             st.success("ترجمہ ہو گیا ✅")
-            st.text_area("Urdu Translation:", value=result.text, height=150)
-            
-            # Pronunciation بھی دکھا دو
-            if result.pronunciation:
-                st.caption(f"**Pronunciation:** {result.pronunciation}")
+            st.text_area("Urdu Translation:", value=translated, height=150)
                 
         except Exception as e:
-            st.error(f"Error آ گیا: {e}")
-            st.info("Net slow ہے تو 1 منٹ بعد Try کرو")
+            st.error(f"Error: {e}")
+            st.info("Net slow ہے تو دوبارہ Try کرو")
 
 st.markdown("---")
-st.caption("Made with ❤️ using Google Translate Free")
+st.caption("Powered by deep-translator - Free Forever")
